@@ -1,0 +1,73 @@
+[project]
+name = "codebase-rag"
+version = "0.1.0"
+description = "AST-aware hybrid RAG system for understanding and querying software repositories"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "MIT" }
+authors = [
+    { name = "AYUSH" }
+]
+
+dependencies = [
+    # API
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2.0",
+
+    # Configuration
+    "python-dotenv",
+
+    # Repository / code parsing
+    "gitpython",
+    "tree-sitter",
+
+    # Embeddings / LLM
+    "openai",
+
+    # Vector database
+    "psycopg[binary]",
+    "pgvector",
+
+    # Retrieval
+    "rank-bm25",
+
+    # HTTP / utilities
+    "httpx",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "mypy",
+]
+
+[project.scripts]
+index-repo = "scripts.index_repo:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
