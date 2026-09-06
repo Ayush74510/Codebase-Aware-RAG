@@ -1,0 +1,5 @@
+python -m pytest tests/test_ast_chunker.py   -> Execute pytest, which then discovers and runs the tests in that file.
+
+python tests/test_ast_chunker.py -> Execute this file.
+
+python -m tests.test_ast_chunker -> Execute this module.

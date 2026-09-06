@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
-
-from git import Repo
+from git import Repo # type: ignore
 
 
 # Files that are generally not useful for codebase RAG
