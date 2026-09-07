@@ -2,6 +2,7 @@ from __future__ import annotations
 import os
 import psycopg # type: ignore
 from dotenv import load_dotenv
+from pgvector.psycopg import register_vector # type: ignore
 
 load_dotenv()
 
@@ -17,4 +18,6 @@ if not DATABASE_URL:
 def get_connection() -> psycopg.Connection:
     """Create and return a PostgreSQL connection."""
 
-    return psycopg.connect(DATABASE_URL)
+    connection = psycopg.connect(DATABASE_URL)
+    register_vector(connection)
+    return connection

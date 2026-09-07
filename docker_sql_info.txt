@@ -1,0 +1,58 @@
+1. docker compose up -d
+
+2. docker compose ps
+
+3. To open postGreSQL -> docker exec -it codebase-rag-postgres psql -U postgres -d codebase_rag
+                                                    |
+                                                    Container name
+
+4. CREATE EXTENSION IF NOT EXISTS vector;
+
+5.  SELECT extname, extversion
+    FROM pg_extension
+    WHERE extname = 'vector';   
+
+6. CREATE TABLE code_chunks (
+    id BIGSERIAL PRIMARY KEY,
+
+    file_path TEXT NOT NULL,
+    chunk_type TEXT NOT NULL,
+    name TEXT NOT NULL,
+
+    content TEXT NOT NULL,
+
+    start_line INTEGER NOT NULL,
+    end_line INTEGER NOT NULL,
+
+    language TEXT,
+
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+    embedding VECTOR(1536)
+);
+
+7. \d code_chunks
+
+8. SELECT * FROM code_chunks;
+
+9. python -m pip install "psycopg[binary]"
+
+10. python -c "import psycopg; print(psycopg.__version__)"
+
+11. DATABASE_URL=postgresql://postgres:postgres@localhost:5432/codebase_rag
+
+12. DELETE FROM code_chunks
+    WHERE file_path = 'test/math.py';
+
+13. SELECT COUNT(*) FROM code_chunks;
+
+14. SELECT
+        COUNT(*) AS total_chunks,
+        COUNT(embedding) AS embedded_chunks,
+        vector_dims(embedding) AS embedding_dimensions
+    FROM code_chunks
+    GROUP BY vector_dims(embedding);
+
+15. CREATE INDEX code_chunks_embedding_idx
+    ON code_chunks
+    USING hnsw (embedding vector_cosine_ops);

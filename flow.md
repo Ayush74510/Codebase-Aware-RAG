@@ -1,0 +1,13 @@
+Repository
+    ↓
+RepositoryLoader
+    ↓
+RepositoryFile[]
+    ↓
+ASTChunker
+    ↓
+CodeChunk[]
+    ↓
+EmbeddingPipeline
+    ↓
+PostgreSQL

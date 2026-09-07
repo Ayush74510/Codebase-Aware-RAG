@@ -1,0 +1,18 @@
+CodeChunk
+    │
+    ├── file_path
+    ├── chunk_type
+    ├── name
+    ├── content
+    ├── start_line
+    ├── end_line
+    ├── language
+    └── metadata
+             │
+             ▼
+          JSONB
+             
+embedding ────────────────┐
+                          ▼
+                   PostgreSQL
+                   code_chunks

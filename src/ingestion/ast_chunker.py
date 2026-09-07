@@ -77,7 +77,7 @@ class ASTChunker:
             repository_file=repository_file,
             chunks=chunks,
             parent_class=None,
-            parent_function=None,   
+            parent_function=None,
         )
 
         return chunks

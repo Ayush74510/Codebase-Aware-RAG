@@ -110,9 +110,11 @@ class RepositoryLoader:
         if source_path.exists():
             repo_path = source_path.resolve()
             should_cleanup = False
+            
         elif self._is_git_url(source):
             repo_path = self._clone_repository(source)
             should_cleanup = True
+            
         else:
             raise FileNotFoundError(f"Repository source does not exist or is not a valid Git URL: {source}")
 
