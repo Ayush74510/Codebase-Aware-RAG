@@ -1,14 +1,15 @@
 from src.embedding.embedder import CodeEmbedder
 
+def test_embed_documents():
+    embedder = CodeEmbedder()
 
-embedder = CodeEmbedder()
-
-embeddings = embedder.embed_documents(
-    [
+    texts = [
         "def add(a, b): return a + b",
-        "def multiply(a, b): return a * b",
+        "def subtract(a, b): return a - b",
     ]
-)
 
-print("Number of embeddings:", len(embeddings))
-print("Embedding dimension:", len(embeddings[0]))
+    embeddings = embedder.embed_documents(texts)
+
+    assert len(embeddings) == 2
+    assert len(embeddings[0]) == 1024
+    assert len(embeddings[1]) == 1024

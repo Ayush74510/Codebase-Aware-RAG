@@ -1,12 +1,14 @@
 from src.generation.llm import CodeLLM
 
 
-llm = CodeLLM()
+def test_llm_generates_response():
+    llm = CodeLLM()
 
-response = llm.generate(
-    "Explain what this Python function does:\n\n"
-    "def add(a, b):\n"
-    "    return a + b"
-)
+    response = llm.generate(
+        "Explain what this Python function does:\n\n"
+        "def add(a, b):\n"
+        "    return a + b"
+    )
 
-print(response)
+    assert response
+    assert "add" in response.lower()

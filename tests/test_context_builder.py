@@ -1,16 +1,25 @@
-from src.embedding.embedder import CodeEmbedder
 from src.retrieval.context_builder import ContextBuilder
-from src.retrieval.retriever import Retriever
+from src.retrieval.retriever import RetrievedChunk
 
 
-embedder = CodeEmbedder()
-retriever = Retriever(embedder)
+def test_context_builder_formats_chunks():
+    chunk = RetrievedChunk(
+        id=1,
+        file_path="src/database/connection.py",
+        chunk_type="function",
+        name="get_connection",
+        content="connection = psycopg.connect(DATABASE_URL)",
+        start_line=20,
+        end_line=21,
+        language="python",
+        metadata={},
+        distance=0.1,
+    )
 
-results = retriever.search(
-    "Where is the PostgreSQL database connection created?",
-    top_k=3,
-)
+    context = ContextBuilder.build([chunk])
 
-context = ContextBuilder.build(results)
-
-print(context)
+    assert "src/database/connection.py" in context
+    assert "get_connection" in context
+    assert "20-21" in context
+    assert "connection = psycopg.connect(DATABASE_URL)" in context
+    assert "```python" in context

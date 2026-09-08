@@ -2,20 +2,20 @@ from src.embedding.embedder import CodeEmbedder
 from src.retrieval.retriever import Retriever
 
 
-embedder = CodeEmbedder()
-retriever = Retriever(embedder)
+def test_retriever_finds_database_connection():
+    embedder = CodeEmbedder()
+    retriever = Retriever(embedder)
 
-results = retriever.search(
-    "Where is the PostgreSQL database connection created?",
-    top_k=5,
-)
-
-print(f"Found {len(results)} results\n")
-
-for result in results:
-    print(
-        f"[{result.distance:.4f}] "
-        f"{result.file_path}:{result.start_line}-{result.end_line}"
+    results = retriever.search(
+        "Where is the PostgreSQL database connection created?",
+        top_k=5,
     )
-    print(f"  {result.chunk_type}: {result.name}")
-    print()
+
+    assert results
+    assert len(results) <= 5
+
+    assert any(
+        result.file_path == "src/database/connection.py"
+        and result.name == "get_connection"
+        for result in results
+    )

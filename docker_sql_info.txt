@@ -2,7 +2,7 @@
 
 2. docker compose ps
 
-3. To open postGreSQL -> docker exec -it codebase-rag-postgres psql -U postgres -d codebase_rag
+3. To open postGreSQL -> docker exec -it (codebase-rag-postgres) psql -U postgres -d codebase_rag
                                                     |
                                                     Container name
 
