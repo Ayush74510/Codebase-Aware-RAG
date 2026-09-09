@@ -18,7 +18,7 @@ class RetrievedChunk:
     end_line: int
     language: str | None
     metadata: dict
-    distance: float
+    score: float
 
 
 class Retriever:
@@ -56,7 +56,7 @@ class Retriever:
                         end_line,
                         language,
                         metadata,
-                        embedding <=> %s AS distance
+                        embedding <=> %s AS score
                     FROM code_chunks
                     ORDER BY embedding <=> %s
                     LIMIT %s
@@ -81,7 +81,7 @@ class Retriever:
                 end_line=row[6],
                 language=row[7],
                 metadata=row[8],
-                distance=float(row[9]),
+                score=float(row[9]),
             )
             for row in rows
         ]

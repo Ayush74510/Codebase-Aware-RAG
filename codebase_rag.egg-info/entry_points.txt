@@ -1,0 +1,2 @@
+[console_scripts]
+index-repo = scripts.index_repo:main

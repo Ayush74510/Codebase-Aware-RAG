@@ -27,7 +27,3 @@ def index_repository(source: str) -> int:
     )
 
     return pipeline.process(chunks)
-
-if __name__ == "__main__":
-    count = index_repository(".")
-    print(f"Indexed {count} chunks.")

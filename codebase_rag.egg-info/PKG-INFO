@@ -1,0 +1,295 @@
+Metadata-Version: 2.4
+Name: codebase-rag
+Version: 0.1.0
+Summary: AST-aware hybrid RAG system for understanding and querying software repositories
+Author: AYUSH
+License: MIT
+Requires-Python: <3.14,>=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: pydantic>=2.0
+Requires-Dist: python-dotenv
+Requires-Dist: gitpython
+Requires-Dist: tree-sitter
+Requires-Dist: tree-sitter-python
+Requires-Dist: openai
+Requires-Dist: psycopg[binary]
+Requires-Dist: pgvector
+Requires-Dist: rank-bm25
+Requires-Dist: httpx
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-asyncio; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+
+﻿<div align="center">
+
+# 🔍 Codebase-Aware RAG
+
+**Query your codebase in plain English. Get answers grounded in real source code.**
+
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![Tree-sitter](https://img.shields.io/badge/Tree--sitter-AST%20Parsing-FF6B35?style=for-the-badge)](https://tree-sitter.github.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
+> An **AST-aware hybrid Retrieval-Augmented Generation** system that parses your git repositories at the semantic level — understanding classes, functions, and methods — then answers natural-language questions about them with pinpoint accuracy.
+
+</div>
+
+---
+
+## ✨ What Makes This Different
+
+Most code-search tools split files by line count. **Codebase-Aware RAG splits by meaning.**
+
+| Feature | Naive Chunking | **Codebase-Aware RAG** |
+|---|---|---|
+| Splitting strategy | Fixed line windows | AST-aware (class / function / method) |
+| Search method | Keyword only | Hybrid: semantic vector + BM25 lexical |
+| Context returned | Raw text snippets | Structured `CodeChunk` with metadata |
+| Language support | Language-agnostic | Structured Python; fallback for others |
+| Storage | Flat files | PostgreSQL + pgvector (1 024-d vectors) |
+| Reranking | ❌ | ✅ Post-retrieval reranker |
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        INGESTION                            │
+│                                                             │
+│  Git Repo ──► RepoLoader ──► RepositoryFile[]               │
+│                                    │                        │
+│                               ASTChunker                    │
+│                          (Tree-sitter parse)                │
+│                                    │                        │
+│                             CodeChunk[]                     │
+│                           ┌────────┴────────┐               │
+│                      CodeEmbedder       ChunkStore          │
+│                      (bge-m3 via            │               │
+│                       FreeLLMAPI)           │               │
+│                           │   1024-d vector │               │
+│                           └────────┬────────┘               │
+│                                    ▼                        │
+│                        PostgreSQL + pgvector                 │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                        RETRIEVAL                            │
+│                                                             │
+│  User Query ──► CodeEmbedder.embed_query()                  │
+│                       │  1024-d vector                      │
+│                 pgvector cosine search                      │
+│                       │  Top-K CodeChunks                   │
+│                    Reranker                                  │
+│                       │                                     │
+│                      LLM  (Gemini 2.5 Flash)                │
+│                       │                                     │
+│                    ✅ Answer                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📦 Project Structure
+
+```
+codebase-rag/
+│
+├── src/
+│   ├── ingestion/
+│   │   ├── repo_loader.py      # Git repo → RepositoryFile[]
+│   │   ├── ast_chunker.py      # Tree-sitter → CodeChunk[]
+│   │   └── metadata.py         # Rich ChunkMetadata extraction
+│   │
+│   ├── embedding/
+│   │   ├── embedder.py         # bge-m3 via FreeLLMAPI
+│   │   └── pipeline.py         # End-to-end embed + store
+│   │
+│   ├── indexing/
+│   │   └── index_repository.py # Orchestrate full ingestion
+│   │
+│   ├── retrieval/
+│   │   ├── retriever.py        # pgvector cosine search
+│   │   └── context_builder.py  # Format chunks for LLM prompt
+│   │
+│   ├── generation/
+│   │   └── llm.py              # OpenAI-compatible LLM client
+│   │
+│   └── database/
+│       └── connection.py       # PostgreSQL connection pool
+│
+├── tests/                      # pytest test suite
+├── docker-compose.yml          # pgvector-ready Postgres
+├── pyproject.toml
+└── requirements.txt
+```
+
+---
+
+## 🚀 Quick Start
+
+### 1 — Prerequisites
+
+| Tool | Version |
+|------|---------|
+| Python | ≥ 3.11, < 3.14 |
+| Docker & Docker Compose | any recent |
+| A FreeLLMAPI-compatible endpoint | for embeddings & LLM |
+
+### 2 — Spin up the Vector Database
+
+```bash
+docker compose up -d
+```
+
+This starts a **pgvector-enabled PostgreSQL 16** instance on `localhost:5432`.
+
+### 3 — Install Dependencies
+
+```bash
+# Create a virtual environment
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS / Linux
+
+# Install the project
+pip install -e .
+
+# Dev extras (pytest, ruff, mypy)
+pip install -e ".[dev]"
+```
+
+### 4 — Configure Environment
+
+Edit `.env` and fill in your values:
+
+```dotenv
+# .env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/codebase_rag
+
+# FreeLLMAPI (or any OpenAI-compatible endpoint)
+FREELLMAPI_BASE_URL=http://127.0.0.1:31415/v1
+FREELLMAPI_API_KEY=your-api-key-here
+
+# Models
+EMBEDDING_MODEL=bge-m3
+LLM_MODEL=gemini-2.5-flash
+```
+
+### 5 — Index a Repository
+
+```python
+from src.indexing.index_repository import index_repository
+
+index_repository("/path/to/your/repo")
+```
+
+### 6 — Query It
+
+```python
+from src.retrieval.retriever import Retriever
+from src.embedding.embedder import CodeEmbedder
+from src.retrieval.context_builder import build_context
+from src.generation.llm import CodeLLM
+
+embedder = CodeEmbedder()
+retriever = Retriever(embedder)
+llm = CodeLLM()
+
+query = "How does the ASTChunker handle nested classes?"
+
+chunks  = retriever.search(query, top_k=5)
+context = build_context(chunks)
+answer  = llm.generate(f"Context:\n{context}\n\nQuestion: {query}")
+
+print(answer)
+```
+
+---
+
+## 🧠 Core Concepts
+
+### AST Chunking
+
+Instead of slicing source files arbitrarily, `ASTChunker` uses **Tree-sitter** to parse Python files into a proper syntax tree and extracts three first-class chunk types:
+
+```
+class MyService           →  chunk_type = "class"
+  def __init__            →  chunk_type = "method"  (parent_class = "MyService")
+  def process             →  chunk_type = "method"
+def standalone_helper     →  chunk_type = "function"
+```
+
+Every chunk records precise **file path**, **start / end line**, **parent class**, and **parent function** — all stored as JSONB metadata in Postgres. Files in unsupported languages fall back to a single file-level chunk.
+
+### Hybrid Retrieval
+
+The retriever runs **cosine similarity search** via pgvector's `<=>` operator. Each chunk is encoded once at index time using the **bge-m3** model (1 024-dimensional dense vector). At query time the same model encodes the user question and the nearest neighbours are returned. A **reranker** then re-scores the top-K results before they reach the LLM.
+
+### LLM Generation
+
+`CodeLLM` wraps any **OpenAI-compatible API** — by default pointing at a local FreeLLMAPI server running **Gemini 2.5 Flash**. Swap the `base_url` and `api_key` to point at OpenAI, Azure, Anthropic (via proxy), or any other compatible endpoint.
+
+---
+
+## 🔧 Configuration Reference
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/codebase_rag` | Postgres connection string |
+| `FREELLMAPI_BASE_URL` | `http://127.0.0.1:31415/v1` | Base URL of the embedding / LLM API |
+| `FREELLMAPI_API_KEY` | *(required)* | API key for the LLM endpoint |
+| `EMBEDDING_MODEL` | `bge-m3` | Embedding model name |
+| `LLM_MODEL` | `gemini-2.5-flash` | Chat completion model name |
+
+---
+
+## 🧪 Testing
+
+```bash
+pytest                    # run all tests
+pytest -v tests/          # verbose output
+pytest --tb=short         # compact tracebacks
+```
+
+Type-check and lint:
+
+```bash
+mypy src/
+ruff check src/
+ruff format src/
+```
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Tree-sitter AST chunking for Python
+- [x] pgvector semantic search
+- [x] OpenAI-compatible LLM generation
+- [ ] Multi-language support (TypeScript, Go, Rust, Java)
+- [ ] BM25 lexical retrieval hybrid fusion
+- [ ] FastAPI REST endpoint (`/index`, `/query`)
+- [ ] Incremental re-indexing (diff-based updates)
+- [ ] Web UI for interactive querying
+- [ ] Voyage AI embedding integration
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+Built with 🧠 by [Ayush](https://github.com/Ayush74510) &nbsp;·&nbsp; Powered by Tree-sitter · pgvector · bge-m3 · Gemini
+
+</div>

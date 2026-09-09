@@ -13,7 +13,7 @@ def test_context_builder_formats_chunks():
         end_line=21,
         language="python",
         metadata={},
-        distance=0.1,
+        score=0.1,
     )
 
     context = ContextBuilder.build([chunk])

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from src.generation.llm import CodeLLM
 from src.retrieval.context_builder import ContextBuilder
-from src.retrieval.retriever import Retriever
+from src.retrieval.base import RetrieverProtocol
 
 
 class CodebaseRAG:
@@ -9,7 +9,7 @@ class CodebaseRAG:
 
     def __init__(
         self,
-        retriever: Retriever,
+        retriever: RetrieverProtocol,
         llm: CodeLLM,
     ) -> None:
         self._retriever = retriever
