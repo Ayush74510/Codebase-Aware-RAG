@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Codebase-Aware RAG</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .index-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .index-section input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: vertical;
+            font-size: 16px;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            font-size: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #222;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        .answer {
+            margin-top: 25px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .status {
+            margin-top: 15px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Codebase-Aware RAG</h1>
+
+    <div class="subtitle">
+        Ask questions about your indexed codebase.
+    </div>
+
+    <div class="input-section">
+
+        <!-- Repository indexing -->
+        <div class="index-section">
+
+            <input
+                id="repository"
+                type="text"
+                placeholder="Repository path or Git URL"
+            >
+
+            <button id="indexButton">
+                Index Repository
+            </button>
+
+        </div>
+
+        <!-- Question -->
+        <textarea
+            id="query"
+            placeholder="Ask something about the codebase..."
+        ></textarea>
+
+        <!-- Query controls -->
+        <div class="controls">
+
+            <label>
+                Top K:
+
+                <input
+                    id="topK"
+                    type="number"
+                    value="5"
+                    min="1"
+                >
+            </label>
+
+            <button id="askButton">
+                Ask
+            </button>
+
+        </div>
+
+        <!-- Status -->
+        <div id="status" class="status"></div>
+
+    </div>
+
+    <!-- Answer -->
+    <div
+        id="answer"
+        class="answer"
+        style="display: none;"
+    ></div>
+
+</div>
+
+<script>
+
+    const repositoryInput =
+        document.getElementById("repository");
+
+    const indexButton =
+        document.getElementById("indexButton");
+
+    const queryInput =
+        document.getElementById("query");
+
+    const topKInput =
+        document.getElementById("topK");
+
+    const askButton =
+        document.getElementById("askButton");
+
+    const status =
+        document.getElementById("status");
+
+    const answer =
+        document.getElementById("answer");
+
+
+    /*
+     * Index Repository
+     */
+    indexButton.addEventListener("click", async () => {
+
+        const source =
+            repositoryInput.value.trim();
+
+        if (!source) {
+            status.textContent =
+                "Please enter a repository path or Git URL.";
+
+            return;
+        }
+
+        indexButton.disabled = true;
+        askButton.disabled = true;
+
+        status.textContent =
+            "Indexing repository...";
+
+        answer.style.display = "none";
+
+        try {
+
+            const response = await fetch("/index", {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    source: source
+                })
+            });
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.detail || "Indexing failed."
+                );
+
+            }
+
+
+            status.textContent =
+                `Successfully indexed ${data.indexed_chunks} chunks.`;
+
+        }
+
+        catch (error) {
+
+            status.textContent =
+                `Error: ${error.message}`;
+
+        }
+
+        finally {
+
+            indexButton.disabled = false;
+            askButton.disabled = false;
+
+        }
+
+    });
+
+
+    /*
+     * Ask Question
+     */
+    askButton.addEventListener("click", async () => {
+
+        const query =
+            queryInput.value.trim();
+
+        const topK =
+            Number(topKInput.value);
+
+
+        if (!query) {
+
+            status.textContent =
+                "Please enter a question.";
+
+            return;
+
+        }
+
+
+        if (topK <= 0) {
+
+            status.textContent =
+                "Top K must be greater than 0.";
+
+            return;
+
+        }
+
+
+        askButton.disabled = true;
+        indexButton.disabled = true;
+
+        status.textContent =
+            "Thinking...";
+
+        answer.style.display =
+            "none";
+
+
+        try {
+
+            const response =
+                await fetch("/ask", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: topK
+                    })
+
+                });
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.detail || "Request failed."
+                );
+
+            }
+
+
+            answer.textContent =
+                data.answer;
+
+            answer.style.display =
+                "block";
+
+            status.textContent =
+                "";
+
+        }
+
+        catch (error) {
+
+            status.textContent =
+                `Error: ${error.message}`;
+
+        }
+
+        finally {
+
+            askButton.disabled = false;
+            indexButton.disabled = false;
+
+        }
+
+    });
+
+</script>
+
+</body>
+
+</html>
