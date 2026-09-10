@@ -2,7 +2,7 @@
 
 2. docker compose ps
 
-3. To open postGreSQL -> docker exec -it (codebase-rag-postgres) psql -U postgres -d codebase_rag
+3. To open postGreSQL -> docker exec -it codebase-rag-postgres psql -U postgres -d codebase_rag
                                                     |
                                                     Container name
 
@@ -56,3 +56,11 @@
 15. CREATE INDEX code_chunks_embedding_idx
     ON code_chunks
     USING hnsw (embedding vector_cosine_ops);
+
+
+16. SELECT
+        repository_id,
+        COUNT(*) AS chunk_count
+    FROM code_chunks
+    WHERE repository_id = 'E:\Code\Projects\Codebase_Aware_RAG'
+    GROUP BY repository_id;

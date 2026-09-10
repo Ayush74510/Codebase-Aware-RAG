@@ -56,7 +56,18 @@ class BM25Retriever:
         ]
 
         tokenized_documents = [
-            self._tokenize(chunk.content)
+            self._tokenize(
+                " ".join(
+                    [
+                        chunk.file_path,
+                        chunk.chunk_type,
+                        chunk.name,
+                        chunk.metadata.get("parent_class") or "",
+                        chunk.metadata.get("parent_function") or "",
+                        chunk.content,
+                    ]
+                )
+            )
             for chunk in self._chunks
         ]
 

@@ -7,6 +7,7 @@ from .metadata import ChunkMetadata, MetadataExtractor
 
 PYTHON_LANGUAGE = Language(tspython.language())
 
+MAX_CHUNK_CHARACTERS = 24000
 
 @dataclass
 class CodeChunk:
@@ -207,21 +208,73 @@ class ASTChunker:
     def _fallback_chunk(
         repository_file: RepositoryFile,
     ) -> list[CodeChunk]:
-        """Return the complete file as one chunk."""
+        """Return a file as one or more size-limited chunks."""
+        content = repository_file.content
 
-        line_count = (
-            repository_file.content.count("\n") + 1 if repository_file.content else 0
-        )
-
-        return [
-            CodeChunk(
-                file_path=repository_file.path,
-                chunk_type="file",
-                name=repository_file.path,
-                content=repository_file.content,
-                start_line=1,
-                end_line=line_count,
-                language=repository_file.language or "unknown",
-                metadata=ChunkMetadata(),
+        if len(content) <= MAX_CHUNK_CHARACTERS:
+            line_count = (
+                content.count("\n") + 1
+                if content
+                else 0
             )
-        ]
+
+            return [
+                CodeChunk(
+                    file_path=repository_file.path,
+                    chunk_type="file",
+                    name=repository_file.path,
+                    content=content,
+                    start_line=1,
+                    end_line=line_count,
+                    language=repository_file.language or "unknown",
+                    metadata=ChunkMetadata(),
+                )
+            ]
+
+        lines = content.splitlines(keepends=True)
+        chunks: list[CodeChunk] = []
+
+        current_lines: list[str] = []
+        current_characters = 0
+        start_line = 1
+
+        for line_number, line in enumerate(lines, start=1):
+            if (
+                current_lines
+                and current_characters + len(line) > MAX_CHUNK_CHARACTERS
+            ):
+                chunks.append(
+                    CodeChunk(
+                        file_path=repository_file.path,
+                        chunk_type="file",
+                        name=repository_file.path,
+                        content="".join(current_lines),
+                        start_line=start_line,
+                        end_line=line_number - 1,
+                        language=repository_file.language or "unknown",
+                        metadata=ChunkMetadata(),
+                    )
+                )
+
+                current_lines = []
+                current_characters = 0
+                start_line = line_number
+
+            current_lines.append(line)
+            current_characters += len(line)
+
+        if current_lines:
+            chunks.append(
+                CodeChunk(
+                    file_path=repository_file.path,
+                    chunk_type="file",
+                    name=repository_file.path,
+                    content="".join(current_lines),
+                    start_line=start_line,
+                    end_line=len(lines),
+                    language=repository_file.language or "unknown",
+                    metadata=ChunkMetadata(),
+                )
+            )
+
+        return chunks

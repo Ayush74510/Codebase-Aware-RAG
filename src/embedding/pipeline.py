@@ -30,7 +30,7 @@ class EmbeddingPipeline:
         self._store = store
         self._batch_size = batch_size
 
-    def process(self, chunks: list[CodeChunk]) -> int:
+    def process(self, chunks: list[CodeChunk], repository_id:str) -> int:
         """Embed and store all code chunks.
 
         Returns:
@@ -52,7 +52,7 @@ class EmbeddingPipeline:
                 )
 
             for chunk, embedding in zip(batch, embeddings):
-                self._store.insert_chunk(chunk, embedding)
+                self._store.insert_chunk(chunk, embedding, repository_id)
                 stored_count += 1
 
         return stored_count

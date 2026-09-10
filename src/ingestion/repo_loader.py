@@ -89,9 +89,10 @@ class RepositoryLoader:
     - perform retrieval
     """
 
-    def __init__(self,max_file_size_mb: int = 2) -> None:
+    def __init__(self,max_file_size_mb: int = 2, ignored_dirs: set[str] | None=None) -> None:
         self.max_file_size = max_file_size_mb * 1024 * 1024
         self._temporary_directories: list[Path] = []
+        self._ignored_dirs = IGNORED_DIRS | (ignored_dirs or set())
 
     def load(self, source: str) -> list[RepositoryFile]:
         """
@@ -188,14 +189,14 @@ class RepositoryLoader:
             size_bytes=path.stat().st_size,
         )
 
-    @staticmethod
-    def _should_ignore(path: Path,repo_path: Path) -> bool:
+    
+    def _should_ignore(self,path: Path,repo_path: Path) -> bool:
         """Determine whether a file belongs to an ignored directory."""
 
         relative_path = path.relative_to(repo_path)
 
         return any(
-            part in IGNORED_DIRS
+            part in self._ignored_dirs
             for part in relative_path.parts
         )
 

@@ -17,6 +17,7 @@ class ChunkStore:
         self,
         chunk: CodeChunk,
         embedding: list[float],
+        repository_id: str,
     ) -> int:
         """Insert one code chunk and its embedding.
 
@@ -47,7 +48,8 @@ class ChunkStore:
                         end_line,
                         language,
                         metadata,
-                        embedding
+                        embedding,
+                        repository_id
                     )
                     VALUES (
                         %s,
@@ -58,9 +60,23 @@ class ChunkStore:
                         %s,
                         %s,
                         %s::jsonb,
+                        %s,
                         %s
                     )
-                    RETURNING id
+                    ON CONFLICT (
+                        repository_id,
+                        file_path,
+                        chunk_type,
+                        name,
+                        start_line,
+                        end_line
+                    )
+                    DO UPDATE SET
+                        content = EXCLUDED.content,
+                        language = EXCLUDED.language,
+                        metadata = EXCLUDED.metadata,
+                        embedding = EXCLUDED.embedding
+                    RETURNING id    
                     """,
                     (
                         chunk.file_path,
@@ -72,6 +88,7 @@ class ChunkStore:
                         chunk.language,
                         metadata,
                         embedding,
+                        repository_id,
                     ),
                 )
 
@@ -83,3 +100,16 @@ class ChunkStore:
                     )
 
                 return row[0]
+            
+    def delete_repository(self, repository_id: str) -> int:
+        """Delete all chunks belonging to a repository."""
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM code_chunks
+                    WHERE repository_id = %s
+                    """,
+                    (repository_id,),
+                )
+                return cursor.rowcount
